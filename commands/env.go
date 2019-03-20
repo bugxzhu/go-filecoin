@@ -14,12 +14,12 @@ import (
 
 // Env is the environment passed to commands. Implements cmds.Environment.
 type Env struct {
-	ctx          context.Context
-	api          api.API
-	porcelainAPI *porcelain.API
-	blockAPI     *block.API
-	retrievalAPI *retrieval.API
-	storageAPI   *storage.API
+	ctx            context.Context
+	api            api.API
+	porcelainAPI   *porcelain.API
+	blockMiningAPI *block.MiningAPI
+	retrievalAPI   *retrieval.API
+	storageAPI     *storage.API
 }
 
 var _ cmds.Environment = (*Env)(nil)
@@ -47,9 +47,9 @@ func GetPorcelainAPI(env cmds.Environment) *porcelain.API {
 }
 
 // GetBlockAPI returns the block protocol api from the given environment
-func GetBlockAPI(env cmds.Environment) *block.API {
+func GetBlockAPI(env cmds.Environment) *block.MiningAPI {
 	ce := env.(*Env)
-	return ce.blockAPI
+	return ce.blockMiningAPI
 }
 
 // GetRetrievalAPI returns the retrieval protocol api from the given environment
