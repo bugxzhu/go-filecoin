@@ -61,7 +61,6 @@ type DatastoreConfig struct {
 // arguments, and must return either an error or nil depending on whether or not
 // the given key and value are valid. Validators will only be run if a property
 // being set matches the name given in this map.
-// TODO add validators for BeatTarget and PrometheusEndpoint asserting they are valid addresses
 var Validators = map[string]func(string, string) error{
 	"heartbeat.nickname": validateLettersOnly,
 }
