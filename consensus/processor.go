@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"gx/ipfs/QmNVpHFt7QmabuVQyguf8AbkLDZoFh7ifBYztqijYT1Sd2/go.opencensus.io/stats"
-	"gx/ipfs/QmNVpHFt7QmabuVQyguf8AbkLDZoFh7ifBYztqijYT1Sd2/go.opencensus.io/tag"
 
 	"github.com/filecoin-project/go-filecoin/actor"
 	"github.com/filecoin-project/go-filecoin/actor/builtin/account"
@@ -17,6 +16,12 @@ import (
 	"github.com/filecoin-project/go-filecoin/vm"
 	"github.com/filecoin-project/go-filecoin/vm/errors"
 )
+
+var consensusRegistry *metrics.Registry
+
+func init() {
+	consensusRegistry = metrics.NewRegistry()
+}
 
 // BlockRewarder applies all rewards due to the miner's owner for processing a block including block reward and gas
 type BlockRewarder interface {
@@ -99,16 +104,12 @@ func NewConfiguredProcessor(validator SignedMessageValidator, rewarder BlockRewa
 func (p *DefaultProcessor) ProcessBlock(ctx context.Context, st state.Tree, vms vm.StorageMap, blk *types.Block, ancestors []types.TipSet) ([]*ApplicationResult, error) {
 	var emptyResults []*ApplicationResult
 
-	ctx, err := tag.New(ctx, tag.Insert(metrics.KeyMethod, "ProcessBlock"))
-	if err != nil {
-		return nil, err
-	}
-
+	pbLatency := consensusRegistry.NewTimer("consensus/process_block", "The duration in milliseconds of ProcessBlock", "ms")
 	processBlkTimer := time.Now()
 	defer func() {
 		dur := time.Since(processBlkTimer).Round(time.Millisecond)
 		log.Infof("[TIMER] DefaultProcessor.ProcessBlock BlkCID: %s - elapsed time: %s", blk.Cid(), dur)
-		stats.Record(ctx, metrics.MProcessBlockMs.M(float64(dur)/1e6))
+		pbLatency.Record(ctx)
 	}()
 
 	// find miner's owner address
@@ -276,11 +277,6 @@ func (p *DefaultProcessor) ApplyMessage(ctx context.Context, st state.Tree, vms 
 	msgCid, err := msg.Cid()
 	if err != nil {
 		return nil, errors.FaultErrorWrap(err, "could not get message cid")
-	}
-
-	ctx, err = tag.New(ctx, tag.Insert(metrics.KeyMethod, "ApplyMessage"))
-	if err != nil {
-		return nil, err
 	}
 
 	applyMsgTimer := time.Now()
